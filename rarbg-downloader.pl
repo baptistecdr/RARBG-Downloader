@@ -59,7 +59,7 @@ try {
 
     throw Error::Simple("You need to specify a search value !") unless defined $search_value;
     throw Error::Simple("Your search value is not valid !") unless $search_value =~ /^[\w\s\[\].-]+$/;
-    if($limit_result != 25 || $limit_result != 50 || $limit_result != 100){
+    if($limit_result !~ /^(25|50|100)$/){
         $limit_result = $DEFAULT_LIMIT_RESULT;
         syslog(LOG_WARNING, "You can only limit by 25, 50 or 100. Default value will be use : $DEFAULT_LIMIT_RESULT");
     }
