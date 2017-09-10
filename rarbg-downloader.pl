@@ -15,6 +15,24 @@ my $DEFAULT_RANKED = 0; # Find all
 my $DEFAULT_DOWNLOAD_ALL_RESULTS = 0;
 my $DEBUG = 0;
 
+sub help {
+    print "RARBG-Downloader - Search and download torrent on RARBBG\n";
+    print "-dp  --download-path Where to export the magnet file\n";
+    print "                         Default value : Current Directory\n";
+    print "-s   --search        Search a torrent by his name\n";
+    print "-c   --category      Which category do you want to search a torrent\n";
+    print "                         Possible value : See on RARBG\n";
+    print "                         Default value : 41 (TV HD Episodes)\n";
+    print "-l   --limit         Max records you want to get\n";
+    print "                         Possible value : 25, 50, 100\n";
+    print "                         Default value : 25\n";
+    print "-r   --ranked        Search only for ranked torrents (scene release, rarbg release, rartv release)\n";
+    print "                         Default value : False\n";
+    print "-y   --yes           Download all results without asking to download\n";
+    print "-d   --debug         Show more log\n";
+    exit 0;
+}
+
 try {
     my $search_value = undef;
     my $download_path = $DEFAULT_DOWNLOAD_PATH;
@@ -46,12 +64,12 @@ try {
         syslog(LOG_WARNING, "You can only limit by 25, 50 or 100. Default value will be use : $DEFAULT_LIMIT_RESULT");
     }
 
-    throw Error::Simple("Download folder invalid") unless (defined $download_path && -d $download_path && $download_path =~ m#^[\w\s/\\.-]+$#);
+    throw Error::Simple("Download path is invalid !") unless (defined $download_path && -d $download_path && $download_path =~ m#^[\w\s/\\.-]+$#);
     my $tapi = Rarbg::torrentapi->new();
     syslog(LOG_DEBUG, "Searching '$search_value' on RARBG");
     my $search = search_torrent($tapi, $search_value, $category_id, $limit_result, $ranked);
 
-    if(!defined($search) || ref($search) eq "Rarbg::torrentapi::Error"){
+    if(not defined($search) || ref($search) eq "Rarbg::torrentapi::Error"){
         syslog(LOG_WARNING, "No result found for '$search_value'");
     } else {
         my @results = @{$search};
@@ -62,9 +80,13 @@ try {
                 my $response = <STDIN>;
                 chomp $response;
                 if($response =~ /^(y|yes)$/i) {
+                    syslog(LOG_DEBUG, "Extracting magnet link for" . $result->title);
                     download_torrent($download_path, $result);
+                } else {
+                    syslog(LOG_DEBUG, $result->title . " has been ignored");
                 }
             } else {
+                syslog(LOG_DEBUG, "Downloading all results without asking the user...");
                 download_torrent($download_path, $result);
             }
         }
@@ -74,25 +96,6 @@ try {
     my $ex = shift;
     syslog(LOG_ERR, "%s", $ex);
 };
-
-sub help {
-    print "RARBG-Downloader - Search and download torrent on RARBBG\n";
-    print "-dp  --download-path Where to export the magnet file\n";
-    print "                         Default value : Current Directory\n";
-    print "-s   --search        Search a torrent by his name\n";
-    print "-c   --category      Which category do you want to search a torrent\n";
-    print "                         Possible value : See on RARBG\n";
-    print "                         Default value : 41 (TV HD Episodes)\n";
-    print "-l   --limit         Max records you want to get\n";
-    print "                         Possible value : 25, 50, 100\n";
-    print "                         Default value : 25\n";
-    print "-r   --ranked        Search only for ranked torrents (scene release, rarbg release, rartv release)\n";
-    print "                         Default value : False\n";
-    print "-y   --yes           Download all results without asking to download\n";
-    print "-d   --debug         Show more log\n";
-    exit 0;
-}
-
 
 sub search_torrent {
     my $tapi = shift;
@@ -118,7 +121,6 @@ sub download_torrent {
     my $filename = "$torrentname.magnet";
     throw Error::Simple("Unable to write the file '$filename'") unless open(my $magnet_file, ">",
         "$download_path/$filename");
-    syslog(LOG_INFO, "Extracting magnet link for '$torrentname'");
     print($magnet_file $torrent->download);
     close($magnet_file);
 }
