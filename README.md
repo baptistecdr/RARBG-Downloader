@@ -1,5 +1,5 @@
 # RARBG-Downloader
-Search and download torrent on RARBBG because CLI is faster than GUI.
+Search and download torrent on RARBG because CLI is faster than GUI.
 
 ## Prequisites
 
